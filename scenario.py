@@ -1,5 +1,7 @@
 from constants import Constants
 from game_element import GameElement
+from game_state import GameState
+from ghost import Ghost
 from pacman import Pacman
 
 
@@ -9,9 +11,11 @@ class Scenario(GameElement):
         self.font = font
         self.pygame = pygame
         self.pacman = pac
+        self.state = GameState.RUNNING
         self.movables = []
         self.size = size
         self.score = 0
+        self.lifes = 3
         self.matrix = [
             [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
             [2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2],
@@ -61,11 +65,53 @@ class Scenario(GameElement):
                 self.pygame.draw.circle(screen, Constants.YELLOW, (x + half, y + half), self.size // 10, 0)
 
     def paint(self, screen):
+        if self.state == GameState.RUNNING:
+            self.paint_playing(screen)
+        elif self.state == GameState.PAUSED:
+            self.paint_playing(screen)
+            self.paint_paused(screen)
+        elif self.state == GameState.GAME_OVER:
+            self.paint_playing(screen)
+            self.paint_game_over(screen)
+        elif self.state == GameState.FINISH:
+            self.paint_playing(screen)
+            self.paint_finish(screen)
+
+    def paint_finish(self, screen):
+        self.paint_text_center(screen, "Congratulations - You Win")
+
+    def paint_text_center(self, screen, text):
+        text_img = self.font.render(text, True, Constants.YELLOW)
+        x_text = (800 - text_img.get_width()) // 2
+        y_text = (600 - text_img.get_height()) // 2
+        screen.blit(text_img, (x_text, y_text))
+
+    def paint_game_over(self, screen):
+        self.paint_text_center(screen, "G A M E - O V E R")
+
+    def paint_paused(self, screen):
+        self.paint_text_center(screen, "P A U S E D")
+
+    def paint_playing(self, screen):
         for row_number, row in enumerate(self.matrix):
             self.paint_row(screen, row_number, row)
         self.show_score(screen)
 
     def calc_rules(self):
+        if self.state == GameState.RUNNING:
+            self.calc_rules_playing()
+        elif self.state == GameState.PAUSED:
+            self.calc_rules_paused()
+        elif self.state == GameState.GAME_OVER:
+            self.calc_rules_game_over()
+
+    def calc_rules_game_over(self):
+        pass
+
+    def calc_rules_paused(self):
+        pass
+
+    def calc_rules_playing(self):
         for movable in self.movables:
             row = int(movable.row)
             column = int(movable.column)
@@ -74,24 +120,42 @@ class Scenario(GameElement):
             directions = self.get_directions(row, column)
             if len(directions) >= 3:
                 movable.corner(directions)
-            if 0 <= column_intention < 28 and 0 <= row_intention < 29 and self.matrix[row_intention] \
-                    [column_intention] != 2:
-                movable.accept_movement()
-                if isinstance(movable, Pacman) and self.matrix[row][column] == 1:
-                    self.score += 1
-                    self.matrix[row][column] = 0
+            if isinstance(movable, Ghost) and movable.row == self.pacman.row and movable.column == self.pacman.column:
+                self.lifes -= 1
+                if self.lifes <= 0:
+                    self.state = GameState.GAME_OVER
+                else:
+                    self.pacman.row = 1
+                    self.pacman.column = 1
             else:
-                movable.deny_movement(directions)
+                if 0 <= column_intention < 28 and 0 <= row_intention < 29 and self.matrix[row_intention] \
+                        [column_intention] != 2:
+                    movable.accept_movement()
+                    if isinstance(movable, Pacman) and self.matrix[row][column] == 1:
+                        self.score += 1
+                        self.matrix[row][column] = 0
+                        if self.score >= 306:
+                            self.state = GameState.FINISH
+                else:
+                    movable.deny_movement(directions)
 
     def show_score(self, screen):
         score_x = 30 * self.size
         img_score = self.font.render("Score: {}".format(self.score), True, Constants.YELLOW)
+        lifes_img = self.font.render("Life {}".format(self.lifes), True, Constants.YELLOW)
         screen.blit(img_score, (score_x, 50))
+        screen.blit(lifes_img, (score_x, 100))
 
     def process_events(self, events):
         for e in events:
             if e.type == self.pygame.QUIT:
                 exit()
+            if e.type == self.pygame.KEYDOWN:
+                if e.key == self.pygame.K_p:
+                    if self.state == GameState.RUNNING:
+                        self.state = GameState.PAUSED
+                    else:
+                        self.state = GameState.RUNNING
 
     def get_directions(self, row, column):
         directions = []

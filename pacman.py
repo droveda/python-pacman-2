@@ -16,6 +16,8 @@ class Pacman(GameElement, Movable):
         self.radius = int(self.size / 2)
         self.column_intention = self.column
         self.row_intention = self.row
+        self.gap = 0
+        self.gap_speed = 1
 
     def calc_rules(self):
         self.column_intention = self.column + self.speed_x
@@ -27,10 +29,16 @@ class Pacman(GameElement, Movable):
         # draw pacman body
         self.pygame.draw.circle(screen, Constants.YELLOW, (self.x_center, self.y_center), self.radius, 0)
 
+        self.gap += self.gap_speed
+        if self.gap > self.radius:
+            self.gap_speed = -1
+        if self.gap <= 0:
+            self.gap_speed = 1
+
         # draw pacman mouth
         mouth_edge = (self.x_center, self.y_center)
-        upper_lip = (self.x_center + self.radius, self.y_center - self.radius)
-        bottom_lip = (self.x_center + self.radius, self.y_center)
+        upper_lip = (self.x_center + self.radius, self.y_center - self.gap)
+        bottom_lip = (self.x_center + self.radius, self.y_center + self.gap)
         dots = [mouth_edge, upper_lip, bottom_lip]
         self.pygame.draw.polygon(screen, Constants.BLACK, dots, 0)
 

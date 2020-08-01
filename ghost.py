@@ -8,7 +8,7 @@ from movable import Movable
 class Ghost(GameElement, Movable):
     def __init__(self, color, size, pygame):
         self.column = 12.0
-        self.row = 12.0
+        self.row = 15.0
         self.color = color
         self.size = size
         self.pygame = pygame
