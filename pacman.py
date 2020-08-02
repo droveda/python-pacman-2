@@ -49,6 +49,9 @@ class Pacman(GameElement, Movable):
         self.pygame.draw.circle(screen, Constants.BLACK, (eye_x, eye_y), eye_radius, 0)
 
     def process_events(self, events):
+        self.movement_method2(events)
+
+    def movement_method1(self, events):
         for e in events:
             if e.type == self.pygame.KEYDOWN:
                 if e.key == self.pygame.K_RIGHT:
@@ -69,6 +72,22 @@ class Pacman(GameElement, Movable):
                 elif e.key == self.pygame.K_DOWN:
                     self.speed_y = 0
 
+    def movement_method2(self, events):
+        for e in events:
+            if e.type == self.pygame.KEYDOWN:
+                if e.key == self.pygame.K_RIGHT:
+                    self.speed_x = Constants.SPEED
+                    self.speed_y = 0
+                elif e.key == self.pygame.K_LEFT:
+                    self.speed_x = -Constants.SPEED
+                    self.speed_y = 0
+                elif e.key == self.pygame.K_UP:
+                    self.speed_y = -Constants.SPEED
+                    self.speed_x = 0
+                elif e.key == self.pygame.K_DOWN:
+                    self.speed_y = Constants.SPEED
+                    self.speed_x = 0
+
     def accept_movement(self):
         self.row = self.row_intention
         self.column = self.column_intention
@@ -79,3 +98,13 @@ class Pacman(GameElement, Movable):
 
     def corner(self, directions):
         pass
+
+    # def play_effect(self):
+    #     thread = ThreadSound(self.pygame, self.munch1)
+    #     thread.start()
+    #
+    #     thread2 = ThreadSound(self.pygame, self.munch2)
+    #     thread2.start()
+    #
+    #     thread.join()
+    #     thread2.join()

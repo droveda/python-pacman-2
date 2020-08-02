@@ -8,7 +8,7 @@ from scenario_matrix import ScenarioMatrix
 
 class Scenario(GameElement):
 
-    def __init__(self, size, pac, pygame, font):
+    def __init__(self, size, pac, pygame, font, clock, game_sound):
         self.font = font
         self.pygame = pygame
         self.pacman = pac
@@ -18,6 +18,9 @@ class Scenario(GameElement):
         self.score = 0
         self.lifes = 3
         self.matrix = ScenarioMatrix().get_matrix()
+        self.clock = clock
+        self.is_playing = False
+        self.game_sound = game_sound
 
     def add_movable(self, movable):
         self.movables.append(movable)
@@ -106,9 +109,12 @@ class Scenario(GameElement):
                     movable.accept_movement()
                     if isinstance(movable, Pacman) and self.matrix[row][column] == 1:
                         self.score += 1
+                        self.game_sound.play_munch()
                         self.matrix[row][column] = 0
                         if self.score >= 306:
                             self.state = GameState.FINISH
+                    else:
+                        self.is_playing = False
                 else:
                     movable.deny_movement(directions)
 

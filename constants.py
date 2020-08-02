@@ -13,3 +13,10 @@ class Constants:
     RIGHT = 3
     LEFT = 4
     STOPPED = 0
+    FRAME_RATE = 8
+
+    def __init__(self, pygame):
+        self.pygame = pygame
+
+    def get_event_song_ended(self):
+        return self.pygame.USEREVENT + 1
