@@ -2,11 +2,12 @@ import random
 
 from constants import Constants
 from game_element import GameElement
+from game_state import GameState
 from movable import Movable
 
 
 class Ghost(GameElement, Movable):
-    def __init__(self, color, size, pygame):
+    def __init__(self, color, size, pygame, game_state):
         self.column = 12.0
         self.row = 15.0
         self.color = color
@@ -16,6 +17,7 @@ class Ghost(GameElement, Movable):
         self.direction = Constants.DOWN
         self.row_intention = self.row
         self.column_intention = self.column
+        self.state = game_state
 
     def paint(self, screen):
         slice = self.size // 8
@@ -48,14 +50,15 @@ class Ghost(GameElement, Movable):
         self.pygame.draw.circle(screen, Constants.BLACK, (x_right_eye, y_right_eye), internal_eye_radius, 0)
 
     def calc_rules(self):
-        if self.direction == Constants.UP:
-            self.row_intention -= self.speed
-        elif self.direction == Constants.DOWN:
-            self.row_intention += self.speed
-        elif self.direction == Constants.LEFT:
-            self.column_intention -= self.speed
-        elif self.direction == Constants.RIGHT:
-            self.column_intention += self.speed
+        if self.state.get_current_state() != GameState.PAUSED_USER:
+            if self.direction == Constants.UP:
+                self.row_intention -= self.speed
+            elif self.direction == Constants.DOWN:
+                self.row_intention += self.speed
+            elif self.direction == Constants.LEFT:
+                self.column_intention -= self.speed
+            elif self.direction == Constants.RIGHT:
+                self.column_intention += self.speed
 
     def process_events(self, events):
         pass

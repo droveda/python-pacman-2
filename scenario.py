@@ -4,15 +4,16 @@ from game_state import GameState
 from ghost import Ghost
 from pacman import Pacman
 from scenario_matrix import ScenarioMatrix
+from thread_death import ThreadDeath
 
 
 class Scenario(GameElement):
 
-    def __init__(self, size, pac, pygame, font, clock, game_sound):
+    def __init__(self, size, pac, pygame, font, clock, game_sound, game_state):
         self.font = font
         self.pygame = pygame
         self.pacman = pac
-        self.state = GameState.RUNNING
+        self.state = game_state
         self.movables = []
         self.size = size
         self.score = 0
@@ -21,6 +22,7 @@ class Scenario(GameElement):
         self.clock = clock
         self.is_playing = False
         self.game_sound = game_sound
+        self.game_sound.set_scenario(self)
 
     def add_movable(self, movable):
         self.movables.append(movable)
@@ -39,17 +41,19 @@ class Scenario(GameElement):
                 self.pygame.draw.circle(screen, Constants.YELLOW, (x + half, y + half), self.size // 10, 0)
 
     def paint(self, screen):
-        if self.state == GameState.RUNNING:
+        if self.state.is_game_running():
             self.paint_playing(screen)
-        elif self.state == GameState.PAUSED:
+        elif self.state.is_paused_by_user():
             self.paint_playing(screen)
             self.paint_paused(screen)
-        elif self.state == GameState.GAME_OVER:
+        elif self.state.is_game_over():
             self.paint_playing(screen)
             self.paint_game_over(screen)
-        elif self.state == GameState.FINISH:
+        elif self.state.is_finished():
             self.paint_playing(screen)
             self.paint_finish(screen)
+        elif self.state.is_paused():
+            self.paint_playing(screen)
 
     def paint_finish(self, screen):
         self.paint_text_center(screen, "Congratulations - You Win")
@@ -72,14 +76,19 @@ class Scenario(GameElement):
         self.show_score(screen)
 
     def calc_rules(self):
-        if self.state == GameState.RUNNING:
+        if self.state.is_game_running():
             self.calc_rules_playing()
-        elif self.state == GameState.PAUSED:
-            self.calc_rules_paused()
-        elif self.state == GameState.GAME_OVER:
+        elif self.state.is_paused_by_user():
+            self.calc_rules_paused_user()
+        elif self.state.is_game_over():
             self.calc_rules_game_over()
+        elif self.state.is_paused():
+            self.calc_rules_paused()
 
     def calc_rules_game_over(self):
+        pass
+
+    def calc_rules_paused_user(self):
         pass
 
     def calc_rules_paused(self):
@@ -95,14 +104,7 @@ class Scenario(GameElement):
             if len(directions) >= 3:
                 movable.corner(directions)
             if isinstance(movable, Ghost) and movable.row == self.pacman.row and movable.column == self.pacman.column:
-                self.lifes -= 1
-                if self.lifes <= 0:
-                    self.state = GameState.GAME_OVER
-                    self.pacman.row = 1
-                    self.pacman.column = 1
-                else:
-                    self.pacman.row = 1
-                    self.pacman.column = 1
+                self.death()
             else:
                 if 0 <= column_intention < 28 and 0 <= row_intention < 29 and self.matrix[row_intention] \
                         [column_intention] != 2:
@@ -112,11 +114,15 @@ class Scenario(GameElement):
                         self.game_sound.play_munch()
                         self.matrix[row][column] = 0
                         if self.score >= 306:
-                            self.state = GameState.FINISH
+                            self.state.set_current_state(GameState.FINISH)
                     else:
                         self.is_playing = False
                 else:
                     movable.deny_movement(directions)
+
+    def death(self):
+        thread = ThreadDeath(self.pygame, self.game_sound.death1, self)
+        thread.start()
 
     def show_score(self, screen):
         score_x = 30 * self.size
@@ -136,24 +142,29 @@ class Scenario(GameElement):
                     self.reboot_game()
 
     def pause_game(self):
-        if self.state != GameState.GAME_OVER and self.state != GameState.FINISH:
-            if self.state == GameState.RUNNING:
-                self.state = GameState.PAUSED
+        if self.state.get_current_state() != GameState.GAME_OVER and self.state.get_current_state() != GameState.FINISH:
+            if self.state.get_current_state() == GameState.RUNNING:
+                self.state.set_current_state(GameState.PAUSED_USER)
+                self.game_sound.pause_music()
             else:
-                self.state = GameState.RUNNING
+                self.state.set_current_state(GameState.RUNNING)
+                self.game_sound.resume_music()
 
     def reboot_game(self):
-        if self.state == GameState.GAME_OVER or self.state == GameState.FINISH:
-            self.state = GameState.RUNNING
-            self.lifes = 3
-            self.pacman.row = 1
-            self.pacman.column = 1
-            self.matrix = ScenarioMatrix().get_matrix()
-            self.score = 0
-            for movable in self.movables:
-                if isinstance(movable, Ghost):
-                    movable.column = 12.0
-                    movable.row = 15.0
+        self.lifes = 3
+        self.pacman.row = 1
+        self.pacman.column = 1
+        self.matrix = ScenarioMatrix().get_matrix()
+        self.score = 0
+        self.reset_ghosts()
+        self.state.set_current_state(GameState.PAUSED)
+        self.game_sound.play_start_music()
+
+    def reset_ghosts(self):
+        for movable in self.movables:
+            if isinstance(movable, Ghost):
+                movable.column = 12.0
+                movable.row = 15.0
 
     def get_directions(self, row, column):
         directions = []

@@ -1,11 +1,13 @@
 import threading
+from game_state import GameState
 
 
 class ThreadSound(threading.Thread):
-    def __init__(self, pygame, sound):
+    def __init__(self, pygame, sound, game_state):
         threading.Thread.__init__(self)
         self.sound = sound
         self.pygame = pygame
+        self.state = game_state
         # print("init...")
 
     def run(self) -> None:
@@ -14,5 +16,8 @@ class ThreadSound(threading.Thread):
 
         while channel.get_busy():
             continue
-            # self.pygame.time.wait(1)  # ms
-            # print("Playing pac_fx1...")
+
+        print("Terminou...")
+        self.state.set_current_state(GameState.RUNNING)
+        # self.pygame.time.wait(1)  # ms
+        # print("Playing pac_fx1...")

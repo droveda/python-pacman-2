@@ -2,6 +2,7 @@ import pygame
 
 from constants import Constants
 from game_sounds import GameSounds
+from game_state import GameState
 from ghost import Ghost
 from pacman import Pacman
 from scenario import Scenario
@@ -17,22 +18,21 @@ if __name__ == "__main__":
     c = Constants(pygame)
 
     size = 600 // 30
-    game_sounds = GameSounds(pygame, c)
+    state = GameState()
+    game_sounds = GameSounds(pygame, c, state)
     game_sounds.play_start_music()
 
-    pacman = Pacman(size, pygame)
-    blinky = Ghost(Constants.RED, size, pygame)
-    inky = Ghost(Constants.CYAN, size, pygame)
-    clyde = Ghost(Constants.ORANGE, size, pygame)
-    pinky = Ghost(Constants.PINK, size, pygame)
-    scenario = Scenario(size, pacman, pygame, font, clock, game_sounds)
+    pacman = Pacman(size, pygame, state)
+    blinky = Ghost(Constants.RED, size, pygame, state)
+    inky = Ghost(Constants.CYAN, size, pygame, state)
+    clyde = Ghost(Constants.ORANGE, size, pygame, state)
+    pinky = Ghost(Constants.PINK, size, pygame, state)
+    scenario = Scenario(size, pacman, pygame, font, clock, game_sounds, state)
     scenario.add_movable(pacman)
     scenario.add_movable(blinky)
     scenario.add_movable(inky)
     scenario.add_movable(clyde)
     scenario.add_movable(pinky)
-
-
 
     while True:
         # calc the rules
